@@ -5,187 +5,166 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RTB API Tester</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        fontFamily: {
-          sans: ['Inter', 'sans-serif'],
-          mono: ['JetBrains Mono', 'monospace'],
-        },
-        colors: {
-          signal: {
-            teal: '#2DD4BF',
-            amber: '#F59E0B',
-            red: '#FB7185',
-          },
-          ink: {
-            950: '#05070A',
-            900: '#0A0E14',
-            800: '#101620',
-            700: '#161D2B',
-          }
-        },
-        boxShadow: {
-          'glow-teal': '0 0 0 1px rgba(45,212,191,0.15), 0 8px 24px -8px rgba(45,212,191,0.25)',
-          'glow-red': '0 0 0 1px rgba(251,113,133,0.2), 0 8px 24px -8px rgba(251,113,133,0.3)',
-        }
-      }
-    }
-  }
-</script>
 <style>
   body {
-    background-color: #05070A;
-    background-image:
-      radial-gradient(circle at 15% 10%, rgba(45,212,191,0.07), transparent 40%),
-      radial-gradient(circle at 85% 90%, rgba(56,120,255,0.06), transparent 40%);
-    background-attachment: fixed;
+    background: radial-gradient(circle at 20% 20%, #1e1b4b 0%, #0f0f1a 45%, #050507 100%);
+    min-height: 100vh;
   }
   .glass {
-    background: rgba(16, 22, 32, 0.55);
+    background: rgba(255,255,255,0.05);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
   }
   .glass-input {
-    background: rgba(5, 7, 10, 0.5);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
   }
   .glass-input:focus {
-    outline: none;
-    border-color: rgba(45,212,191,0.5);
-    box-shadow: 0 0 0 3px rgba(45,212,191,0.12);
+    border-color: rgba(129,140,248,0.6);
+    box-shadow: 0 0 0 3px rgba(129,140,248,0.15);
   }
-  ::selection { background: rgba(45,212,191,0.3); }
-
-  .pulse-dot {
-    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-  @keyframes pulse-ring {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  #responseBox::-webkit-scrollbar { width: 8px; height: 8px; }
-  #responseBox::-webkit-scrollbar-track { background: transparent; }
-  #responseBox::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
-
-  .json-key { color: #7DD3FC; }
-  .json-string { color: #86EFAC; }
-  .json-number { color: #FCD34D; }
-  .json-bool { color: #F0ABFC; }
-  .json-null { color: #94A3B8; }
-
-  select {
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.9rem center;
-    background-size: 1.1em;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { animation: none !important; transition: none !important; }
-  }
+  pre::-webkit-scrollbar { height: 8px; width: 8px; }
+  pre::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 8px; }
 </style>
 </head>
-<body class="min-h-screen text-slate-200 font-sans antialiased">
+<body class="text-slate-100 antialiased">
 
-  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-14">
+  <div class="min-h-screen flex items-center justify-center px-4 py-10">
+    <div class="w-full max-w-xl glass rounded-3xl shadow-2xl p-6 sm:p-8">
 
-    <!-- Header -->
-    <header class="mb-8 sm:mb-10 flex items-start justify-between gap-4">
-      <div>
-        <div class="flex items-center gap-2.5 mb-2">
-          <span class="relative flex h-2.5 w-2.5">
-            <span class="pulse-dot absolute inline-flex h-full w-full rounded-full bg-signal-teal opacity-60"></span>
-            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-signal-teal"></span>
-          </span>
-          <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Live bid endpoint tester</span>
-        </div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">RTB API Tester</h1>
-      </div>
-    </header>
-
-    <!-- Config Card -->
-    <section class="glass rounded-2xl p-5 sm:p-7 mb-6">
-
-      <div class="mb-5">
-        <label for="crmSelect" class="block text-sm font-medium text-slate-400 mb-2">CRM Platform</label>
-        <select id="crmSelect" class="w-full glass-input rounded-xl px-4 py-3 text-slate-100 font-mono text-sm transition-shadow">
-          <option value="ringba">Ringba</option>
-          <option value="retreaver">Retreaver</option>
-          <option value="callgrid">CallGrid</option>
-        </select>
+      <!-- Header -->
+      <div class="mb-6 sm:mb-8">
+        <h1 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-300 via-violet-300 to-fuchsia-300 bg-clip-text text-transparent">
+          RTB API Tester
+        </h1>
+        <p class="text-slate-400 text-sm mt-1">Send test pings to Ringba, Retreaver &amp; CallGrid</p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-        <div class="sm:col-span-2">
-          <label for="apiKey" class="block text-sm font-medium text-slate-400 mb-2">API Key</label>
-          <input id="apiKey" type="text" placeholder="sk_live_xxxxxxxxxxxx"
-            class="w-full glass-input rounded-xl px-4 py-3 text-slate-100 font-mono text-sm placeholder-slate-600 transition-shadow" />
+      <!-- Form -->
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1.5">CRM Provider</label>
+          <select id="crmSelect"
+            class="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none transition">
+            <option value="ringba" class="bg-slate-900">Ringba</option>
+            <option value="retreaver" class="bg-slate-900">Retreaver</option>
+            <option value="callgrid" class="bg-slate-900">CallGrid</option>
+          </select>
         </div>
 
         <div>
-          <label for="phoneNumber" class="block text-sm font-medium text-slate-400 mb-2">Phone Number</label>
-          <input id="phoneNumber" type="text" placeholder="+15551234567"
-            class="w-full glass-input rounded-xl px-4 py-3 text-slate-100 font-mono text-sm placeholder-slate-600 transition-shadow" />
+          <label class="block text-xs font-medium text-slate-400 mb-1.5">API Key</label>
+          <input id="apiKey" type="text" placeholder="Enter your API key"
+            class="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition" />
         </div>
 
-        <div>
-          <label for="zipCode" class="block text-sm font-medium text-slate-400 mb-2">Zip Code</label>
-          <input id="zipCode" type="text" placeholder="90210"
-            class="w-full glass-input rounded-xl px-4 py-3 text-slate-100 font-mono text-sm placeholder-slate-600 transition-shadow" />
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Phone Number</label>
+            <input id="phone" type="text" placeholder="+1 555 123 4567"
+              class="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Zip Code</label>
+            <input id="zip" type="text" placeholder="90210"
+              class="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">State</label>
+            <input id="state" type="text" placeholder="CA"
+              class="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition" />
+          </div>
         </div>
 
-        <div class="sm:col-span-2">
-          <label for="stateInput" class="block text-sm font-medium text-slate-400 mb-2">State</label>
-          <input id="stateInput" type="text" placeholder="CA"
-            class="w-full glass-input rounded-xl px-4 py-3 text-slate-100 font-mono text-sm placeholder-slate-600 transition-shadow" />
-        </div>
-      </div>
-
-      <button id="testBtn" onclick="testAPI()"
-        class="w-full bg-signal-teal hover:bg-teal-300 active:scale-[0.99] text-ink-950 font-semibold rounded-xl px-4 py-3.5 transition-all duration-150 shadow-glow-teal flex items-center justify-center gap-2">
-        <svg id="testBtnIcon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-        </svg>
-        <span id="testBtnLabel">Send Test Bid Request</span>
-      </button>
-    </section>
-
-    <!-- Response Card -->
-    <section class="glass rounded-2xl p-5 sm:p-7">
-      <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <div class="flex items-center gap-3">
-          <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wide font-mono">Response</h2>
-          <span id="statusBadge" class="hidden text-xs font-mono font-bold px-2.5 py-1 rounded-full border"></span>
-        </div>
-        <button id="copyBtn" onclick="copyResponse()"
-          class="text-xs font-medium text-slate-400 hover:text-slate-100 border border-white/10 hover:border-white/20 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2"/>
-            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-          </svg>
-          Copy
+        <button id="testBtn" onclick="testAPI()"
+          class="w-full mt-2 rounded-xl px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-fuchsia-500 hover:from-indigo-400 hover:to-fuchsia-400 active:scale-[0.98] transition shadow-lg shadow-indigo-900/30">
+          Test API
         </button>
       </div>
 
-      <div id="responseBox" class="glass-input rounded-xl p-4 min-h-[140px] max-h-[420px] overflow-auto">
-        <pre id="response" class="font-mono text-sm leading-relaxed text-slate-500 whitespace-pre-wrap break-words">Awaiting request — fill in the fields above and hit send.</pre>
+      <!-- Response -->
+      <div id="responseWrap" class="mt-6 hidden">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-slate-400">Response</span>
+            <span id="statusBadge" class="text-[11px] font-bold px-2.5 py-1 rounded-full"></span>
+          </div>
+          <button onclick="copyResponse()"
+            class="text-xs font-medium px-3 py-1.5 rounded-lg glass-input hover:bg-white/10 transition">
+            Copy Response
+          </button>
+        </div>
+        <pre id="response" class="glass-input rounded-xl p-4 text-xs sm:text-sm text-slate-200 overflow-x-auto max-h-80 whitespace-pre-wrap break-words"></pre>
       </div>
-    </section>
 
-    <footer class="mt-8 text-center text-xs font-mono text-slate-600">
-      Requests are sent directly from your browser to the selected CRM endpoint.
-    </footer>
+      <p id="copyToast" class="hidden text-xs text-emerald-400 mt-2 text-right">Copied to clipboard ✓</p>
 
+    </div>
   </div>
 
-  <script src="ping.js"></script>
+<script>
+  async function testAPI() {
+    const crm = document.getElementById('crmSelect').value;
+    const apiKey = document.getElementById('apiKey').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const zip = document.getElementById('zip').value.trim();
+    const state = document.getElementById('state').value.trim();
+
+    const btn = document.getElementById('testBtn');
+    const wrap = document.getElementById('responseWrap');
+    const badge = document.getElementById('statusBadge');
+    const resEl = document.getElementById('response');
+
+    if (!apiKey) {
+      alert('Please enter an API Key');
+      return;
+    }
+
+    wrap.classList.remove('hidden');
+    btn.disabled = true;
+    btn.textContent = 'Testing...';
+    badge.textContent = 'PENDING';
+    badge.className = 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300';
+    resEl.textContent = 'Sending request...';
+
+    try {
+      const res = await fetch('/api/ping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ crm, apiKey, phone, zip, state })
+      });
+
+      const data = await res.json();
+      const success = data.ok && data.statusCode >= 200 && data.statusCode < 300;
+
+      badge.textContent = success ? 'SUCCESS' : 'FAILED';
+      badge.className = 'text-[11px] font-bold px-2.5 py-1 rounded-full ' +
+        (success ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300');
+
+      resEl.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      badge.textContent = 'FAILED';
+      badge.className = 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-500/20 text-red-300';
+      resEl.textContent = JSON.stringify({
+        error: err.message,
+        note: 'Could not reach /api/ping. Host this on a server (e.g. Vercel) if CORS error.'
+      }, null, 2);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Test API';
+    }
+  }
+
+  function copyResponse() {
+    const text = document.getElementById('response').textContent;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const toast = document.getElementById('copyToast');
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 1500);
+    });
+  }
+</script>
 </body>
 </html>
