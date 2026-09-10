@@ -9,8 +9,8 @@ module.exports = async function handler(req, res) {
 
   const { crm, apiKey, phone, zip, state, rtbId } = req.body || {};
 
-  if (!crm || !apiKey) {
-    return res.status(400).json({ statusCode: 400, ok: false, error: 'CRM and API Key are required' });
+  if (!crm) {
+    return res.status(400).json({ statusCode: 400, ok: false, error: 'CRM is required' });
   }
 
   let url, headers, body;
@@ -26,27 +26,49 @@ module.exports = async function handler(req, res) {
       }
       url = `https://rtb.ringba.com/v1/production/${rtbId}.json`;
       headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       };
-      body = { key: apiKey, caller_id: phone, zip, state };
+      body = { CID: phone, State: state, ZipCode: zip, exposeCallerId: 'yes' };
       break;
 
     case 'retreaver':
-      url = 'https://rtb.retreaver.com/rtbs.json';
+      if (!apiKey) {
+        return res.status(400).json({
+          statusCode: 400,
+          ok: false,
+          error: 'API Key (Retreaver postback key) is required.'
+        });
+      }
+      if (!rtbId) {
+        return res.status(400).json({
+          statusCode: 400,
+          ok: false,
+          error: 'Publisher ID is required for Retreaver.'
+        });
+      }
+      // Retreaver expects the postback key as a URL query param, not in the body.
+      url = `https://rtb.retreaver.com/rtbs.json?key=${encodeURIComponent(apiKey)}`;
       headers = {
         'Content-Type': 'application/json'
       };
-      body = { key: apiKey, phone, postal_code: zip, region: state };
+      body = { publisher_id: rtbId, caller_number: phone, caller_zip: zip, caller_state: state };
       break;
 
     case 'callgrid':
-      url = 'https://bid.callgrid.com/api/bid/';
+      if (!rtbId) {
+        return res.status(400).json({
+          statusCode: 400,
+          ok: false,
+          error: 'Grid ID is required for CallGrid. It comes from your CallGrid buyer and forms part of the URL.'
+        });
+      }
+      // CallGrid's identity is the Grid ID in the URL path — no key/token needed.
+      url = `https://bid.callgrid.com/api/bid/${rtbId}`;
       headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Accept': 'application/json'
       };
-      body = { api_key: apiKey, phone_number: phone, zip_code: zip, state_code: state };
+      body = { CallerId: phone, InboundStateCode: state, InboundZipCode: zip };
       break;
 
     default:
