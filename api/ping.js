@@ -7,7 +7,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ statusCode: 405, ok: false, error: 'Method not allowed' });
   }
 
-  const { crm, apiKey, phone, zip, state } = req.body || {};
+  const { crm, apiKey, phone, zip, state, rtbId } = req.body || {};
 
   if (!crm || !apiKey) {
     return res.status(400).json({ statusCode: 400, ok: false, error: 'CRM and API Key are required' });
@@ -17,7 +17,14 @@ module.exports = async function handler(req, res) {
 
   switch (crm) {
     case 'ringba':
-      url = 'https://rtb.ringba.com/v1/production/.json';
+      if (!rtbId) {
+        return res.status(400).json({
+          statusCode: 400,
+          ok: false,
+          error: 'RTB ID is required for Ringba. Get it from your Ringba publisher RTB endpoint URL (the segment before ".json").'
+        });
+      }
+      url = `https://rtb.ringba.com/v1/production/${rtbId}.json`;
       headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
