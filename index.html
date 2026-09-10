@@ -45,7 +45,7 @@
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1.5">CRM Provider</label>
-          <select id="crmSelect"
+          <select id="crmSelect" onchange="toggleRtbId()"
             class="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-slate-100 outline-none transition">
             <option value="ringba" class="bg-slate-900">Ringba</option>
             <option value="retreaver" class="bg-slate-900">Retreaver</option>
@@ -56,6 +56,12 @@
         <div>
           <label class="block text-xs font-medium text-slate-400 mb-1.5">API Key</label>
           <input id="apiKey" type="text" placeholder="Enter your API key"
+            class="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition" />
+        </div>
+
+        <div id="rtbIdWrap">
+          <label class="block text-xs font-medium text-slate-400 mb-1.5">RTB ID <span class="text-slate-500">(Ringba only — from your publisher's RTB endpoint URL)</span></label>
+          <input id="rtbId" type="text" placeholder="e.g. CA9d1b2c3d4e5f..."
             class="glass-input w-full rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none transition" />
         </div>
 
@@ -104,12 +110,19 @@
   </div>
 
 <script>
+  function toggleRtbId() {
+    const crm = document.getElementById('crmSelect').value;
+    document.getElementById('rtbIdWrap').classList.toggle('hidden', crm !== 'ringba');
+  }
+  toggleRtbId();
+
   async function testAPI() {
     const crm = document.getElementById('crmSelect').value;
     const apiKey = document.getElementById('apiKey').value.trim();
     const phone = document.getElementById('phone').value.trim();
     const zip = document.getElementById('zip').value.trim();
     const state = document.getElementById('state').value.trim();
+    const rtbId = document.getElementById('rtbId').value.trim();
 
     const btn = document.getElementById('testBtn');
     const wrap = document.getElementById('responseWrap');
@@ -132,7 +145,7 @@
       const res = await fetch('/api/ping', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ crm, apiKey, phone, zip, state })
+        body: JSON.stringify({ crm, apiKey, phone, zip, state, rtbId })
       });
 
       const data = await res.json();
