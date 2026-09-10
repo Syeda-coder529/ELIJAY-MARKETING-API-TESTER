@@ -1,102 +1,80 @@
-// api/ping.js — Server-side proxy for the RTB API Tester
-//
-// Runs on Vercel as a serverless function. Because this executes on the
-// server (not in the browser), CORS restrictions from the CRM endpoints
-// don't apply here — the browser only ever talks to this same-origin
-// /api/ping route.
-//
-// Local testing: run `vercel dev` from the project root.
+// api/ping.js
+// Vercel serverless function — runs server-side, so browser never talks
+// directly to Ringba/Retreaver/CallGrid. This is what avoids CORS entirely.
 
-const CRM_CONFIG = {
-  ringba: {
-    url: "https://rtb.ringba.com/v1/production/.json",
-    buildHeaders: (key) => ({
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${key}`,
-    }),
-    buildBody: ({ key, phone, zip, state }) => ({
-      key,
-      caller_id: phone,
-      zip,
-      state,
-    }),
-  },
-  retreaver: {
-    url: "https://rtb.retreaver.com/rtbs.json",
-    buildHeaders: () => ({
-      "Content-Type": "application/json",
-    }),
-    buildBody: ({ key, phone, zip, state }) => ({
-      key,
-      phone,
-      postal_code: zip,
-      region: state,
-    }),
-  },
-  callgrid: {
-    url: "https://bid.callgrid.com/api/bid/",
-    buildHeaders: (key) => ({
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${key}`,
-    }),
-    buildBody: ({ key, phone, zip, state }) => ({
-      api_key: key,
-      phone_number: phone,
-      zip_code: zip,
-      state_code: state,
-    }),
-  },
-};
-
-module.exports = async (req, res) => {
-  // Allow the tester page to call this route. Lock this down to your own
-  // domain (e.g. "https://your-app.vercel.app") once you're not testing locally.
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    res.status(204).end();
-    return;
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ statusCode: 405, ok: false, error: 'Method not allowed' });
   }
 
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed. Use POST." });
-    return;
+  const { crm, apiKey, phone, zip, state } = req.body || {};
+
+  if (!crm || !apiKey) {
+    return res.status(400).json({ statusCode: 400, ok: false, error: 'CRM and API Key are required' });
   }
 
-  const { crm, key, phone, zip, state } = req.body || {};
-  const config = CRM_CONFIG[crm];
+  let url, headers, body;
 
-  if (!config) {
-    res.status(400).json({ error: `Unknown CRM: "${crm}"` });
-    return;
-  }
+  switch (crm) {
+    case 'ringba':
+      url = 'https://rtb.ringba.com/v1/production/.json';
+      headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      };
+      body = { key: apiKey, caller_id: phone, zip, state };
+      break;
 
-  if (!key) {
-    res.status(400).json({ error: "API Key is required." });
-    return;
+    case 'retreaver':
+      url = 'https://rtb.retreaver.com/rtbs.json';
+      headers = {
+        'Content-Type': 'application/json'
+      };
+      body = { key: apiKey, phone, postal_code: zip, region: state };
+      break;
+
+    case 'callgrid':
+      url = 'https://bid.callgrid.com/api/bid/';
+      headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      };
+      body = { api_key: apiKey, phone_number: phone, zip_code: zip, state_code: state };
+      break;
+
+    default:
+      return res.status(400).json({ statusCode: 400, ok: false, error: 'Unknown CRM selected' });
   }
 
   try {
-    const upstreamRes = await fetch(config.url, {
-      method: "POST",
-      headers: config.buildHeaders(key),
-      body: JSON.stringify(config.buildBody({ key, phone, zip, state })),
+    const upstream = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
     });
 
-    const text = await upstreamRes.text();
+    const rawText = await upstream.text();
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(rawText);
+    } catch (e) {
+      parsedBody = rawText; // upstream didn't return JSON
+    }
 
-    res.status(upstreamRes.status);
-    res.setHeader(
-      "Content-Type",
-      upstreamRes.headers.get("content-type") || "text/plain"
-    );
-    res.send(text);
+    return res.status(200).json({
+      statusCode: upstream.status,
+      ok: upstream.ok,
+      crm,
+      requestSent: { url, body },
+      body: parsedBody
+    });
   } catch (err) {
-    res.status(502).json({
-      error: "Upstream request to the CRM failed",
-      message: err.message,
+    // Network-level failure reaching the CRM (bad URL, DNS, timeout, etc.)
+    return res.status(200).json({
+      statusCode: 0,
+      ok: false,
+      crm,
+      error: err.message || 'Network error contacting CRM endpoint'
     });
   }
 };
